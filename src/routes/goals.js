@@ -42,3 +42,19 @@ goalsRouter.patch('/:id', async (req, res, next) => {
     res.json({ goal: resultGoal });
   } catch (err) { next(err); }
 });
+
+goalsRouter.post('/', async (req, res, next) => {
+  try {
+    const { title, horizonId } = req.body;
+    if (!title || !horizonId) throw new HttpError(400, 'title and horizonId required');
+    const goal = await Goal.create({ title, horizonId });
+    res.status(201).json({ goal });
+  } catch (err) { next(err); }
+});
+
+goalsRouter.delete('/:id', async (req, res, next) => {
+  try {
+    await Goal.findOneAndDelete({ _id: req.params.id });
+    res.status(204).end();
+  } catch (err) { next(err); }
+});

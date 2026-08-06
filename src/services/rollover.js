@@ -28,23 +28,20 @@ export async function runRolloverFor(latest, today) {
     { name: 'Isha', time: timings?.Isha || '' },
   ];
 
-  const session = await mongoose.startSession();
-  try {
-    await session.withTransaction(async () => {
       // Fresh DB — seed today with defaults
       if (latest === null) {
         await DailyLog.findByIdAndUpdate(
           today,
           { $setOnInsert: { _id: today, prayers } },
-          { upsert: true, session },
+          { upsert: true },
         );
         return;
       }
 
       // Snapshot yesterday's tasks into past_tasks
-      const yTasks = await Task.find({ dateKey: latest }).session(session).lean();
+      const yTasks = await Task.find({ dateKey: latest }).lean();
       if (yTasks.length) {
-        await PastTask.create([{ dateKey: latest, taskJson: yTasks }], { session });
+        await PastTask.create([{ dateKey: latest, taskJson: yTasks }]);
       }
 
       // Build unfinished list from snapshot before deleting
@@ -56,26 +53,22 @@ export async function runRolloverFor(latest, today) {
         dateKey: today,
       }));
 
-      await Task.deleteMany({ dateKey: latest }).session(session);
+      await Task.deleteMany({ dateKey: latest });
 
       // Tomorrow tasks → promote; also roll unfinished.
-      const tomorrow = await Task.find({ dateKey: today }).session(session).lean();
+      const tomorrow = await Task.find({ dateKey: today }).lean();
       if (tomorrow.length) {
-        await Task.updateMany({ dateKey: today }, { $set: { done: false } }, { session });
+        await Task.updateMany({ dateKey: today }, { $set: { done: false } });
       }
 
       if (unfinished.length) {
-        await Task.insertMany(unfinished, { session, ordered: false });
+        await Task.insertMany(unfinished, { ordered: false });
       }
 
       // Today's daily_log: insert-only with prayers
       await DailyLog.findByIdAndUpdate(
         today,
         { $setOnInsert: { _id: today, prayers } },
-        { upsert: true, session },
+        { upsert: true },
       );
-    });
-  } finally {
-    session.endSession();
-  }
 }
