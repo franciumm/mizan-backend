@@ -44,4 +44,3 @@ export async function applyTaskRipple(taskId, nextDone) {
   const updated = await Task.findById(taskId).lean();
   return { task: updated, affectedGoals };
 }
-}
