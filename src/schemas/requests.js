@@ -42,3 +42,25 @@ export const updateHorizonSchema = z.object({
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   position: z.number().int().optional(),
 });
+
+export const patchDailyLogSchema = z.object({
+  mode: z.enum(['grinding', 'recovery', 'vacation']).optional(),
+  challenge: z.string().max(200).optional(),
+  challengeDone: z.boolean().optional(),
+  quranDone: z.boolean().optional(),
+  highestTierDone: z.number().int().min(0).optional(),
+  energy: z.number().int().min(1).max(5).optional(),
+  pain: z.number().int().min(1).max(5).optional(),
+  focus: z.number().int().min(1).max(5).optional(),
+  contextNotes: z.array(z.string()).optional(),
+  prayers: z.array(z.object({
+    name: z.string(),
+    time: z.string().optional(),
+    done: z.boolean().optional(),
+  })).optional(),
+});
+
+export const putDraftsSchema = z.object({
+  planner: z.string().max(8000).optional(),
+  coach: z.string().max(8000).optional(),
+});

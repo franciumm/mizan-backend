@@ -8,6 +8,8 @@ import { syncRouter } from './routes/sync.js';
 import { tasksRouter } from './routes/tasks.js';
 import { goalsRouter } from './routes/goals.js';
 import { horizonsRouter } from './routes/horizons.js';
+import { dailyLogRouter } from './routes/daily-log.js';
+import { draftsRouter } from './routes/drafts.js';
 
 const app = express();
 app.use(cors({ origin: env.CORS_ORIGIN }));
@@ -20,6 +22,8 @@ app.use('/api/sync', syncRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/goals', goalsRouter);
 app.use('/api/horizons', horizonsRouter);
+app.use('/api/daily-log', dailyLogRouter);
+app.use('/api/drafts', draftsRouter);
 
 app.use(errorHandler);
 
