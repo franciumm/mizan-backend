@@ -29,12 +29,14 @@ goalSchema.index({ horizonId: 1, position: 1 });
 
 // Goal delete hook: clean up dangling parentGoalIds and task.goalIds.
 // Registered before model compilation per Mongoose best practices.
+// Uses this.model / mongoose.model() rather than closure refs so resolution
+// does not depend on the order in which models are compiled below.
 goalSchema.pre('findOneAndDelete', { document: false, query: true }, async function () {
   const doc = await this.model.findOne(this.getFilter());
   if (!doc) return;
   const id = doc._id;
-  await Goal.updateMany({ parentGoalIds: id }, { $pull: { parentGoalIds: id } });
-  await Task.updateMany({ goalIds: id }, { $pull: { goalIds: id } });
+  await this.model.updateMany({ parentGoalIds: id }, { $pull: { parentGoalIds: id } });
+  await mongoose.model('Task').updateMany({ goalIds: id }, { $pull: { goalIds: id } });
 });
 
 const taskSchema = new Schema({
