@@ -24,30 +24,26 @@ tasksRouter.patch('/:id', async (req, res, next) => {
     const patch = updateTaskSchema.parse(req.body);
     const { linkedGoalIds, ...taskFields } = patch;
     
-    const session = await mongoose.startSession();
     let resultTask, affectedGoals;
     
-    await session.withTransaction(async () => {
-      const task = await Task.findById(id).session(session);
-      if (!task) throw new HttpError(404, 'Task not found');
+    const task = await Task.findById(id);
+    if (!task) throw new HttpError(404, 'Task not found');
 
-      const wasDone = task.done;
-      const oldGoalIds = task.goalIds;
+    const wasDone = task.done;
+    const oldGoalIds = task.goalIds;
 
-      if (patch.done !== undefined) task.done = patch.done;
-      if (linkedGoalIds !== undefined) task.goalIds = linkedGoalIds;
-      for (const [k, v] of Object.entries(taskFields)) {
-        task[k] = v;
-      }
-      await task.save({ session });
+    if (patch.done !== undefined) task.done = patch.done;
+    if (linkedGoalIds !== undefined) task.goalIds = linkedGoalIds;
+    for (const [k, v] of Object.entries(taskFields)) {
+      task[k] = v;
+    }
+    await task.save();
 
-      if (wasDone) await applyRippleDelta(oldGoalIds, -1, session);
-      if (task.done) await applyRippleDelta(task.goalIds, 1, session);
+    if (wasDone) await applyRippleDelta(oldGoalIds, -1);
+    if (task.done) await applyRippleDelta(task.goalIds, 1);
 
-      resultTask = await Task.findById(id).session(session).lean();
-      affectedGoals = await Goal.find().session(session).lean();
-    });
-    session.endSession();
+    resultTask = await Task.findById(id).lean();
+    affectedGoals = await Goal.find().lean();
     
     res.json({ task: resultTask, goals: affectedGoals });
   } catch (err) { next(err); }
@@ -55,15 +51,11 @@ tasksRouter.patch('/:id', async (req, res, next) => {
 
 tasksRouter.delete('/:id', async (req, res, next) => {
   try {
-    const session = await mongoose.startSession();
-    await session.withTransaction(async () => {
-      const task = await Task.findById(req.params.id).session(session);
-      if (task) {
-        if (task.done) await applyRippleDelta(task.goalIds, -1, session);
-        await Task.findByIdAndDelete(task._id).session(session);
-      }
-    });
-    session.endSession();
+    const task = await Task.findById(req.params.id);
+    if (task) {
+      if (task.done) await applyRippleDelta(task.goalIds, -1);
+      await Task.findByIdAndDelete(task._id);
+    }
     res.status(204).end();
   } catch (err) { next(err); }
 });

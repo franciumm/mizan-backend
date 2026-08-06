@@ -10,13 +10,11 @@ export const goalRepo = {
   async update(id, patch) {
     return Goal.findByIdAndUpdate(id, patch, { new: true }).lean();
   },
-  // tasksDone = max(0, tasksDone + delta), applied to each id. Single round-trip.
-  async bulkIncrementDone(ids, delta, session) {
+  async bulkIncrementDone(ids, delta) {
     if (!ids.length) return;
     await Goal.updateMany(
       { _id: { $in: ids } },
       [{ $set: { tasksDone: { $max: [0, { $add: ['$tasksDone', delta] }] } } }],
-      { session },
     );
   },
   async setParentIds(goalId, parentIds, session) {
