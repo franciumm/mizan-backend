@@ -103,6 +103,14 @@ const aiResponseSchema = new Schema({
 }, { versionKey: false });
 aiResponseSchema.index({ createdAt: -1 });
 
+const courageRepSchema = new Schema({
+  _id: uuidSchemaOpts,
+  text: { type: String, required: true },
+  tier: { type: Number, default: 0 },
+  completions: { type: Number, default: 0 },
+  active: { type: Boolean, default: true },
+}, { versionKey: false, timestamps: true });
+
 export const Horizon = model('Horizon', horizonSchema);
 export const Goal = model('Goal', goalSchema);
 export const Task = model('Task', taskSchema);
@@ -110,3 +118,4 @@ export const DailyLog = model('DailyLog', dailyLogSchema);
 export const PastTask = model('PastTask', pastTaskSchema);
 export const Draft = model('Draft', draftSchema);
 export const AiResponse = model('AiResponse', aiResponseSchema);
+export const CourageRep = model('CourageRep', courageRepSchema);

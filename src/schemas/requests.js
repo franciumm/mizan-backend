@@ -54,10 +54,23 @@ export const patchDailyLogSchema = z.object({
   focus: z.number().int().min(1).max(5).optional(),
   contextNotes: z.array(z.string()).optional(),
   prayers: z.array(z.object({
+    _id: z.string().uuid().optional(),
     name: z.string(),
     time: z.string().optional(),
     done: z.boolean().optional(),
   })).optional(),
+});
+
+export const createRepSchema = z.object({
+  text: z.string().min(1).max(300),
+  tier: z.number().int().min(0).max(2).optional(),
+  active: z.boolean().optional(),
+});
+
+export const updateRepSchema = z.object({
+  text: z.string().min(1).max(300).optional(),
+  tier: z.number().int().min(0).max(2).optional(),
+  active: z.boolean().optional(),
 });
 
 export const putDraftsSchema = z.object({
