@@ -14,7 +14,8 @@ describe('runRolloverIfNeeded', () => {
     expect(result.today).toBe(cairoToday());
     const today = await DailyLog.findById(cairoToday()).lean();
     expect(today).toBeTruthy();
-    expect(today.prayers).toEqual([]); // frontend owns prayer times
+    expect(today.prayers).toHaveLength(5);
+    expect(today.prayers[0].name).toBe('Fajr');
   });
 
   it('is a no-op when latest = today', async () => {
@@ -48,7 +49,7 @@ describe('runRolloverFor', () => {
     expect(archive).toHaveLength(1);
   });
 
-  it('promotes tomorrow over rolling when tomorrow exists', async () => {
+  it('promotes tomorrow and ALSO merges rolled tasks', async () => {
     const yesterday = '2026-08-05';
     const today = '2026-08-06';
     await DailyLog.create({ _id: yesterday });
@@ -59,8 +60,15 @@ describe('runRolloverFor', () => {
 
     await runRolloverFor(yesterday, today);
 
-    expect(await Task.findById('t-old').lean()).toBeNull();
-    const promoted = await Task.findById('t-tom').lean();
+    // Old unfinished task was merged, not dropped
+    const merged = await Task.findOne({ title: 'Old' }).lean();
+    expect(merged).toBeTruthy();
+    expect(merged.dateKey).toBe(today);
+    expect(merged.rolled).toBe(1);
+    
+    // Tomorrow task was promoted (done set to false)
+    const promoted = await Task.findOne({ title: 'Tomorrow task' }).lean();
+    expect(promoted).toBeTruthy();
     expect(promoted.dateKey).toBe(today);
     expect(promoted.done).toBe(false);
   });

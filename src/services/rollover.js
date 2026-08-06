@@ -11,52 +11,69 @@ export async function runRolloverIfNeeded() {
 }
 
 export async function runRolloverFor(latest, today) {
+  let timings = null;
+  try {
+    const res = await fetch('http://api.aladhan.com/v1/timingsByCity?city=Cairo&country=Egypt');
+    const data = await res.json();
+    timings = data?.data?.timings;
+  } catch (err) {
+    // Ignore fetch errors, fallback to empty strings
+  }
+
+  const prayers = [
+    { name: 'Fajr', time: timings?.Fajr || '' },
+    { name: 'Dhuhr', time: timings?.Dhuhr || '' },
+    { name: 'Asr', time: timings?.Asr || '' },
+    { name: 'Maghrib', time: timings?.Maghrib || '' },
+    { name: 'Isha', time: timings?.Isha || '' },
+  ];
+
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {
-      // Fresh DB — seed today with defaults + empty prayers. No task rollover.
+      // Fresh DB — seed today with defaults
       if (latest === null) {
         await DailyLog.findByIdAndUpdate(
           today,
-          { $setOnInsert: { _id: today } },
+          { $setOnInsert: { _id: today, prayers } },
           { upsert: true, session },
         );
         return;
       }
 
-      // Snapshot yesterday's tasks into past_tasks (one doc with taskJson array).
+      // Snapshot yesterday's tasks into past_tasks
       const yTasks = await Task.find({ dateKey: latest }).session(session).lean();
       if (yTasks.length) {
         await PastTask.create([{ dateKey: latest, taskJson: yTasks }], { session });
       }
 
-      // Tomorrow tasks → promote; else → roll unfinished.
+      // Build unfinished list from snapshot before deleting
+      const unfinished = yTasks.filter((t) => !t.done).map((t) => ({
+        ...t,
+        _id: undefined,
+        done: false,
+        rolled: Math.min(4, (t.rolled ?? 0) + 1),
+        dateKey: today,
+      }));
+
+      await Task.deleteMany({ dateKey: latest }).session(session);
+
+      // Tomorrow tasks → promote; also roll unfinished.
       const tomorrow = await Task.find({ dateKey: today }).session(session).lean();
       if (tomorrow.length) {
-        await Task.deleteMany({ dateKey: latest }).session(session);
         await Task.updateMany({ dateKey: today }, { $set: { done: false } }, { session });
-      } else {
-        // Build unfinished list from snapshot before deleting
-        const unfinished = yTasks.filter((t) => !t.done).map((t) => ({
-          ...t,
-          _id: undefined,                 // let Mongoose mint a fresh UUID per rolled instance
-          done: false,
-          rolled: Math.min(4, (t.rolled ?? 0) + 1),
-          dateKey: today,
-        }));
-        await Task.deleteMany({ dateKey: latest }).session(session);
-        if (unfinished.length) {
-          await Task.insertMany(unfinished, { session, ordered: false });
-        }
       }
 
-      // Today's daily_log: insert-only with reset defaults + empty prayers (frontend seeds times).
+      if (unfinished.length) {
+        await Task.insertMany(unfinished, { session, ordered: false });
+      }
+
+      // Today's daily_log: insert-only with prayers
       await DailyLog.findByIdAndUpdate(
         today,
-        { $setOnInsert: { _id: today } },
+        { $setOnInsert: { _id: today, prayers } },
         { upsert: true, session },
       );
-      // past_tasks TTL index auto-trims at 30 days — no manual delete here.
     });
   } finally {
     session.endSession();

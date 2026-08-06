@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { taskRepo } from '../repositories/task.js';
 import { goalRepo } from '../repositories/goal.js';
-import { applyTaskRipple } from '../services/ripple.js';
+import { applyTaskRipple, applyRippleDelta } from '../services/ripple.js';
+import mongoose from 'mongoose';
+import { Task, Goal } from '../db/schema.js';
 import { createTaskSchema, updateTaskSchema } from '../schemas/requests.js';
 import { HttpError } from '../lib/http-error.js';
 
@@ -21,28 +23,47 @@ tasksRouter.patch('/:id', async (req, res, next) => {
     const id = req.params.id;
     const patch = updateTaskSchema.parse(req.body);
     const { linkedGoalIds, ...taskFields } = patch;
-    const current = await taskRepo.findById(id);
-    if (!current) throw new HttpError(404, 'Task not found');
+    
+    const session = await mongoose.startSession();
+    let resultTask, affectedGoals;
+    
+    await session.withTransaction(async () => {
+      const task = await Task.findById(id).session(session);
+      if (!task) throw new HttpError(404, 'Task not found');
 
-    // done changed → ripple (runs in its own transaction).
-    if (patch.done !== undefined && patch.done !== current.done) {
-      const { task, affectedGoals } = await applyTaskRipple(id, patch.done);
-      if (linkedGoalIds !== undefined) await goalRepo.setTaskGoalIds(id, linkedGoalIds);
-      res.json({ task, goals: affectedGoals });
-      return;
-    }
+      const wasDone = task.done;
+      const oldGoalIds = task.goalIds;
 
-    const task = Object.keys(taskFields).length
-      ? await taskRepo.update(id, taskFields)
-      : current;
-    if (linkedGoalIds !== undefined) await goalRepo.setTaskGoalIds(id, linkedGoalIds);
-    res.json({ task });
+      if (patch.done !== undefined) task.done = patch.done;
+      if (linkedGoalIds !== undefined) task.goalIds = linkedGoalIds;
+      for (const [k, v] of Object.entries(taskFields)) {
+        task[k] = v;
+      }
+      await task.save({ session });
+
+      if (wasDone) await applyRippleDelta(oldGoalIds, -1, session);
+      if (task.done) await applyRippleDelta(task.goalIds, 1, session);
+
+      resultTask = await Task.findById(id).session(session).lean();
+      affectedGoals = await Goal.find().session(session).lean();
+    });
+    session.endSession();
+    
+    res.json({ task: resultTask, goals: affectedGoals });
   } catch (err) { next(err); }
 });
 
 tasksRouter.delete('/:id', async (req, res, next) => {
   try {
-    await taskRepo.remove(req.params.id);
+    const session = await mongoose.startSession();
+    await session.withTransaction(async () => {
+      const task = await Task.findById(req.params.id).session(session);
+      if (task) {
+        if (task.done) await applyRippleDelta(task.goalIds, -1, session);
+        await Task.findByIdAndDelete(task._id).session(session);
+      }
+    });
+    session.endSession();
     res.status(204).end();
   } catch (err) { next(err); }
 });
