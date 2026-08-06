@@ -28,3 +28,17 @@ export const updateTaskSchema = z.object({
   position: z.number().int().optional(),
   linkedGoalIds: z.array(z.string().uuid()).optional(),
 });
+
+export const updateGoalSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  tasksDone: z.number().int().min(0).optional(),
+  parentGoalIds: z.array(z.string().uuid()).optional(),
+  position: z.number().int().optional(),
+});
+
+export const updateHorizonSchema = z.object({
+  label: z.string().min(1).max(60).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  position: z.number().int().optional(),
+});

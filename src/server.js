@@ -6,6 +6,8 @@ import { errorHandler } from './middleware/error.js';
 import { connectDb } from './db/client.js';
 import { syncRouter } from './routes/sync.js';
 import { tasksRouter } from './routes/tasks.js';
+import { goalsRouter } from './routes/goals.js';
+import { horizonsRouter } from './routes/horizons.js';
 
 const app = express();
 app.use(cors({ origin: env.CORS_ORIGIN }));
@@ -16,6 +18,8 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 
 app.use('/api/sync', syncRouter);
 app.use('/api/tasks', tasksRouter);
+app.use('/api/goals', goalsRouter);
+app.use('/api/horizons', horizonsRouter);
 
 app.use(errorHandler);
 
