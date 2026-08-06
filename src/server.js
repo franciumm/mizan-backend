@@ -5,6 +5,7 @@ import { logMiddleware } from './middleware/log.js';
 import { errorHandler } from './middleware/error.js';
 import { connectDb } from './db/client.js';
 import { syncRouter } from './routes/sync.js';
+import { tasksRouter } from './routes/tasks.js';
 
 const app = express();
 app.use(cors({ origin: env.CORS_ORIGIN }));
@@ -14,6 +15,7 @@ app.use(logMiddleware);
 app.get('/health', (req, res) => res.json({ ok: true }));
 
 app.use('/api/sync', syncRouter);
+app.use('/api/tasks', tasksRouter);
 
 app.use(errorHandler);
 
