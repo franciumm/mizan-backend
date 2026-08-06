@@ -17,28 +17,22 @@ goalsRouter.patch('/:id', async (req, res, next) => {
       throw new HttpError(400, 'No fields to update');
     }
 
-    const session = await mongoose.startSession();
-    let resultGoal;
-    await session.withTransaction(async () => {
-      const goal = await Goal.findById(id).session(session);
-      if (!goal) throw new HttpError(404, 'Goal not found');
+    const goal = await Goal.findById(id);
+    if (!goal) throw new HttpError(404, 'Goal not found');
 
-      if (parentGoalIds !== undefined) {
-        goal.parentGoalIds = parentGoalIds;
-      }
-      for (const [k, v] of Object.entries(fields)) {
-        goal[k] = v;
-      }
-      await goal.save({ session });
+    if (parentGoalIds !== undefined) {
+      goal.parentGoalIds = parentGoalIds;
+    }
+    for (const [k, v] of Object.entries(fields)) {
+      goal[k] = v;
+    }
+    await goal.save();
 
-      if (parentGoalIds !== undefined) {
-        await recomputeAllGoalCounts(session);
-      }
+    if (parentGoalIds !== undefined) {
+      await recomputeAllGoalCounts();
+    }
 
-      resultGoal = await Goal.findById(id).session(session).lean();
-    });
-    session.endSession();
-
+    const resultGoal = await Goal.findById(id).lean();
     res.json({ goal: resultGoal });
   } catch (err) { next(err); }
 });
