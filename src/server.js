@@ -10,6 +10,7 @@ import { goalsRouter } from './routes/goals.js';
 import { horizonsRouter } from './routes/horizons.js';
 import { dailyLogRouter } from './routes/daily-log.js';
 import { draftsRouter } from './routes/drafts.js';
+import { aiRouter } from './routes/ai.js';
 
 const app = express();
 app.use(cors({ origin: env.CORS_ORIGIN }));
@@ -24,6 +25,7 @@ app.use('/api/goals', goalsRouter);
 app.use('/api/horizons', horizonsRouter);
 app.use('/api/daily-log', dailyLogRouter);
 app.use('/api/drafts', draftsRouter);
+app.use('/api', aiRouter);  // mounts /api/arrange, /api/coach, /api/insights
 
 app.use(errorHandler);
 
