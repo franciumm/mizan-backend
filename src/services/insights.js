@@ -1,16 +1,14 @@
 import { completeJson } from '../lib/openrouter.js';
 
-const SYSTEM_PROMPT = `You are Mizan's insights engine. You receive one user's actual state for today and produce calm, factual commentary as strict JSON.
+const SYSTEM_PROMPT = `You are Mizan's insights engine. You receive one user's actual state for today, along with recent history (last 7 days), and produce calm, factual commentary as strict JSON.
 
 Voice: calm, factual, never scolding. "Your behavior is data, not a verdict."
-- Use only the numbers you were explicitly given (focus minutes, prayer count, check-in scores). Never invent statistics.
-- The life-area names you receive are the dimensions of life to comment on — they currently carry no score, because Mizan does not yet compute one. Speak to each area from the day's actual activity (tasks done in that category, prayer rhythm, check-in), not from a missing number.
-- Headline (2-6 words): the single truest thing about today's pattern.
+- Use only the numbers you were explicitly given (focus minutes, prayer count, check-in scores, past tasks). Never invent statistics.
+- The life-area names you receive are the dimensions of life to comment on — they currently carry no score, because Mizan does not yet compute one. Speak to each area from the day's actual activity OR recent history trends, not from a missing number. You MUST return exactly one entry in the lifeMap array for EVERY life area provided in the input, even if there is little data.
+- Headline (2-6 words): the single truest thing about today's pattern or recent trend.
 - Stat (1 sentence): the supporting number or contrast, plainly stated.
 - Risk (1-2 sentences): the most useful warning, grounded in the data.
-- lifeMap: one short insight per area, derived from today's actual activity in that category. Plain prose, no markdown, max ~22 words. Be specific to the area — do not template.
-
-If the input is essentially empty (no completed tasks, no check-ins recorded), set headline to "Not enough data yet", explain in stat that he should check in for a few days first, leave risk empty, and produce minimal lifeMap entries saying "Needs more days of check-ins to read."`;
+- lifeMap: one short insight per area, derived from today's actual activity or recent history in that category. Plain prose, no markdown, max ~22 words. Be specific to the area — do not template.`;
 
 const insightsSchema = {
   type: 'object',
@@ -48,15 +46,23 @@ function describeContext(context) {
     ? tasksPending.map((t) => `"${t.title}" (${t.category})`).join(', ')
     : '(none)';
 
+  const historyDesc = (context.pastTasks ?? [])
+    .map((day) => {
+      const done = day.tasks.filter((t) => t.done).length;
+      return `${day.dateKey}: ${done} tasks done`;
+    })
+    .join(' | ');
+
   return [
     `Day mode: ${context.mode}`,
-    `Tasks done: ${doneList}`,
+    `Tasks done today: ${doneList}`,
     `Tasks pending/rolled: ${pendingList}`,
     `Focus minutes today: ${focusMinutes} / 240 target`,
     `Prayers done: ${prayerDone} / 5`,
     `Quran done: ${context.quranDone ? 'yes' : 'no'}`,
     `Check-in: energy ${context.checkIn.energy}/5, pain ${context.checkIn.pain}/5, focus ${context.checkIn.focus}/5`,
     `Life areas: ${areas}`,
+    `Recent history (last 7 days): ${historyDesc || '(no history)'}`,
   ].join('\n');
 }
 
@@ -64,7 +70,8 @@ function isEmpty(context) {
   const noTasksDone = !(context.tasks ?? []).some((t) => t.done);
   const defaultCheckIn =
     context.checkIn.energy === 3 && context.checkIn.pain === 2 && context.checkIn.focus === 3;
-  return noTasksDone && defaultCheckIn;
+  const noHistory = (context.pastTasks ?? []).length === 0;
+  return noTasksDone && defaultCheckIn && noHistory;
 }
 
 const DEFAULT_AREA_NAMES = ['Faith', 'Health', 'Business', 'College', 'Mind', 'Family', 'Personality'];
