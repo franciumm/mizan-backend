@@ -34,7 +34,7 @@ app.use('/api/migrate', migrateRouter);
 app.use(errorHandler);
 
 if (env.NODE_ENV !== 'test') {
-  app.listen(env.PORT, '127.0.0.1', async () => {
+  app.listen(env.PORT, async () => {
     await connectDb();
     console.log(`Mizan API listening on http://127.0.0.1:${env.PORT}`);
   });

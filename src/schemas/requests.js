@@ -52,6 +52,7 @@ export const patchDailyLogSchema = z.object({
   energy: z.number().int().min(1).max(5).optional(),
   pain: z.number().int().min(1).max(5).optional(),
   focus: z.number().int().min(1).max(5).optional(),
+  score: z.number().int().min(0).max(100).optional(),
   contextNotes: z.array(z.string()).optional(),
   prayers: z.array(z.object({
     _id: z.string().uuid().optional(),

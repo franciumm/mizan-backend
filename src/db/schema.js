@@ -74,6 +74,7 @@ const dailyLogSchema = new Schema({
   energy: { type: Number, default: 3 },
   pain: { type: Number, default: 2 },
   focus: { type: Number, default: 3 },
+  score: { type: Number, default: 0 },
   contextNotes: { type: [String], default: [] },
   prayers: { type: [prayerSchema], default: [] },   // embedded — one day = one doc
 }, { _id: false, versionKey: false });

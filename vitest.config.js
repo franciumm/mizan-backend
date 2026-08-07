@@ -5,5 +5,8 @@ export default defineConfig({
     environment: 'node',
     setupFiles: [],
     pool: 'forks', // isolate DB tests
+    env: {
+      MONGODB_DB_NAME: 'mizan-test'
+    }
   },
 });

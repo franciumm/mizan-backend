@@ -12,12 +12,13 @@ export async function buildSyncPayload() {
   const { today } = await runRolloverIfNeeded();
   const tomorrow = cairoDateAddDays(new Date(), 1);
 
-  const [horizons, goals, todayTasks, tomorrowTasks, dailyLog, pastTasks, drafts, reps] = await Promise.all([
+  const [horizons, goals, todayTasks, tomorrowTasks, dailyLog, weeklyLogs, pastTasks, drafts, reps] = await Promise.all([
     horizonRepo.findAll(),
     goalRepo.findAll(),
     taskRepo.findByDate(today),
     taskRepo.findByDate(tomorrow),
     dailyLogRepo.findByDate(today),
+    dailyLogRepo.findLastNDays(today, 7),
     pastTaskRepo.listSince(today, 30),
     draftRepo.getAll(),
     CourageRep.find().sort({ createdAt: 1 }).lean(),
@@ -28,6 +29,15 @@ export async function buildSyncPayload() {
     (g.parentGoalIds ?? []).map((pid) => ({ goalId: g._id, parentGoalId: pid })),
   );
 
+  // Map pastTasks to the shape expected by frontend (extracting taskJson into tasks and mapping _id to id)
+  const formattedPastTasks = pastTasks.map(pt => ({
+    dateKey: pt.dateKey,
+    tasks: (Array.isArray(pt.taskJson) ? pt.taskJson : []).map(t => ({
+      ...t,
+      id: t._id?.toString() || t.id
+    }))
+  }));
+
   return {
     dateKey: today,
     horizons,
@@ -35,8 +45,9 @@ export async function buildSyncPayload() {
     goalParents,
     tasks: { today: todayTasks, tomorrow: tomorrowTasks },
     dailyLog,
+    weeklyLogs,
     prayers: dailyLog?.prayers ?? [],   // embedded on the daily log
-    pastTasks,
+    pastTasks: formattedPastTasks,
     drafts,
     reps,
   };

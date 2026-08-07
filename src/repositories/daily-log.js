@@ -4,6 +4,12 @@ export const dailyLogRepo = {
   async findByDate(dateKey) {
     return DailyLog.findById(dateKey).lean();
   },
+  async findLastNDays(endDateKey, n) {
+    return DailyLog.find({ _id: { $lte: endDateKey } })
+      .sort({ _id: -1 })
+      .limit(n)
+      .lean();
+  },
   // Upsert by _id (= dateKey). `patch` may include any scalar field. Does NOT touch prayers.
   async upsert(dateKey, patch, session) {
     return DailyLog.findByIdAndUpdate(
