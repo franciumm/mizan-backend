@@ -26,7 +26,8 @@ aiRouter.post('/coach', async (req, res, next) => {
 aiRouter.post('/insights', async (req, res, next) => {
   try {
     if (!req.body?.context) return res.status(400).json({ error: 'context required' });
-    const result = await generateInsights(req.body);
+    const { context, weekKey, force } = req.body;
+    const result = await generateInsights({ context, weekKey, force });
     res.json(result);
   } catch (err) { next(err); }
 });

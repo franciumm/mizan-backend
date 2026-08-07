@@ -1,4 +1,5 @@
 import { completeJson } from '../lib/openrouter.js';
+import { InsightCache } from '../db/schema.js';
 
 const SYSTEM_PROMPT = `You are Mizan's insights engine. You receive one user's actual state for today, along with recent history (last 7 days), and produce calm, factual commentary as strict JSON.
 
@@ -92,7 +93,16 @@ function emptyStateResponse(context) {
   };
 }
 
-export async function generateInsights({ context }) {
+export async function generateInsights({ context, weekKey, force }) {
+  // 1. If not forcing and we have a weekKey, try the database cache first
+  if (!force && weekKey) {
+    const cached = await InsightCache.findById(weekKey);
+    if (cached && cached.data) {
+      return cached.data;
+    }
+  }
+
+  // 2. Otherwise compute fresh insights
   if (isEmpty(context)) {
     return emptyStateResponse(context);
   }
@@ -129,10 +139,17 @@ export async function generateInsights({ context }) {
     insight: (byName.get(area.name.toLowerCase()) ?? 'Needs more days of check-ins to read.').slice(0, 240),
   }));
 
-  return {
+  const finalResult = {
     headline: String(result.value.headline || 'Today').slice(0, 90),
     stat: String(result.value.stat || '').slice(0, 320),
     risk: String(result.value.risk || '').slice(0, 360),
     lifeMap,
   };
+
+  // 3. Save successful generations to the cache if a weekKey was provided
+  if (weekKey) {
+    await InsightCache.findByIdAndUpdate(weekKey, { data: finalResult }, { upsert: true });
+  }
+
+  return finalResult;
 }

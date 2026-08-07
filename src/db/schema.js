@@ -112,6 +112,11 @@ const courageRepSchema = new Schema({
   active: { type: Boolean, default: true },
 }, { versionKey: false, timestamps: true });
 
+const insightCacheSchema = new Schema({
+  _id: { type: String, required: true }, // weekKey e.g. "2026-08-03"
+  data: { type: Schema.Types.Mixed, required: true },
+}, { versionKey: false });
+
 export const Horizon = model('Horizon', horizonSchema);
 export const Goal = model('Goal', goalSchema);
 export const Task = model('Task', taskSchema);
@@ -120,3 +125,4 @@ export const PastTask = model('PastTask', pastTaskSchema);
 export const Draft = model('Draft', draftSchema);
 export const AiResponse = model('AiResponse', aiResponseSchema);
 export const CourageRep = model('CourageRep', courageRepSchema);
+export const InsightCache = model('InsightCache', insightCacheSchema);
