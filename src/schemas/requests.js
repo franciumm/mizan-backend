@@ -55,7 +55,7 @@ export const patchDailyLogSchema = z.object({
   score: z.number().int().min(0).max(100).optional(),
   contextNotes: z.array(z.string()).optional(),
   prayers: z.array(z.object({
-    _id: z.string().uuid().optional(),
+    _id: z.string().optional(),
     name: z.string(),
     time: z.string().optional(),
     done: z.boolean().optional(),
