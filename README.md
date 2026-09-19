@@ -40,3 +40,13 @@ Run the isolated content API tests with `npx vitest run test/content.test.js`. T
 Records use the separate `JourneyRecord` collection. No Content, task, goal, or daily-log data is modified. Dates can be null; event order and links organize the story. Nested updates preserve follow-ups inside events. Evidence links accept only HTTP(S). Invalid event references and causal cycles are rejected. Archive events or retire playbooks instead of deleting them. Suggested procedures start as Draft, and evidence assessments start as Not assessed.
 
 Run `npm test -- test/journey.test.js test/content.test.js` for isolated router, validation, initialization, and conflict checks. These tests never connect to MongoDB. Deploy this backend route before releasing the matching Journey frontend.
+
+## Life OS
+
+- `GET /api/life-os?through=YYYY-MM-DD`: returns the persisted Life OS state, revision, initialization state, and server-calculated daily/seven-day progress.
+- `PUT /api/life-os`: validates and saves `{ revision, store, through }`; stale writes return 409 without overwriting newer data.
+- Both endpoints require a 256-bit base64url `x-mizan-workspace-key`. Only its SHA-256 hash is used as the Mongo record identifier, preventing a public global Life OS record.
+
+The first frontend connection automatically imports the existing `mizan-life-os-dashboard-v1` browser record when the backend has no Life OS record. After that, MongoDB is the source of truth and localStorage is only an offline recovery copy. Progress uses concrete counts, minutes, outcomes, and user-entered ratings; it does not invent a composite productivity score or streak.
+
+Run `npm test -- --run test/life-os.test.js` for isolated persistence, validation, progress calculation, and conflict tests.

@@ -15,6 +15,7 @@ import { migrateRouter } from './routes/migrate.js';
 import repsRouter from './routes/reps.js';
 import { contentRouter } from './routes/content.js';
 import { journeyRouter } from './routes/journey.js';
+import { lifeOSRouter } from './routes/life-os.js';
 
 const app = express();
 app.use(cors());
@@ -32,6 +33,7 @@ app.use('/api/drafts', draftsRouter);
 app.use('/api/reps', repsRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/journey', journeyRouter);
+app.use('/api/life-os', lifeOSRouter);
 app.use('/api', aiRouter);  // mounts /api/arrange, /api/coach, /api/insights
 app.use('/api/migrate', migrateRouter);
 
