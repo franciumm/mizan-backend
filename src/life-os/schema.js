@@ -48,7 +48,12 @@ export const dailyEntrySchema = z.object({
   reviewFailed: text,
   reviewDistraction: text,
   reviewChange: text,
-  balance: z.object({ hustliq: score(5, 0), college: score(5, 0), mental: score(5, 0), physical: score(5, 0), content: score(5, 0), relationships: score(5, 0), learning: score(5, 0), recreation: score(5, 0) }).strict(),
+  balance: z.object({
+    hustliq: score(5, 0), college: score(5, 0), mental: score(5, 0), physical: score(5, 0),
+    content: score(5, 0), relationships: score(5, 0), learning: score(5, 0), recreation: score(5, 0),
+  }).strict(),
+  commuteMode: z.string().max(100).default(''),
+  funChoices: z.array(z.string().max(100)).max(10).default([]),
 }).strict();
 
 export const episodeSchema = z.object({
