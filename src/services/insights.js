@@ -54,7 +54,7 @@ function describeContext(context) {
     })
     .join(' | ');
 
-  return [
+  const lines = [
     `Day mode: ${context.mode}`,
     `Tasks done today: ${doneList}`,
     `Tasks pending/rolled: ${pendingList}`,
@@ -64,7 +64,40 @@ function describeContext(context) {
     `Check-in: energy ${context.checkIn.energy}/5, pain ${context.checkIn.pain}/5, focus ${context.checkIn.focus}/5`,
     `Life areas: ${areas}`,
     `Recent history (last 7 days): ${historyDesc || '(no history)'}`,
-  ].join('\n');
+  ];
+
+  // Append Life OS weekly stats when present — these are real numbers from the
+  // backend progress engine, not the planner, so always include them.
+  if (context.lifeOS) {
+    const los = context.lifeOS;
+    const w = los.week;
+    const emo = w.emotions ?? {};
+    const tgt = w.targets ?? {};
+
+    const targetLines = Object.entries(tgt)
+      .map(([k, v]) => `${k}: ${v.achieved}/${v.target} (${v.percent}%)`)
+      .join(', ');
+
+    const emotionLines = Object.entries(emo)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(', ');
+
+    lines.push(
+      '',
+      'Life OS this week:',
+      `  Days logged: ${los.daysLogged}`,
+      `  Today — priorities done: ${los.prioritiesPercent}%, morning routine: ${los.morningPercent}%, focus outcome: ${los.focusOutcome}`,
+      `  Code reading: ${w.codeMinutes} min | HustlIQ focus: ${w.focusMinutes} min | Japanese: ${w.japaneseMinutes} min`,
+      `  Gym: ${w.gymSessions} sessions | Rehab: ${w.rehabSessions} sessions | Conversations: ${w.meaningfulConversations} | Adventures: ${w.adventures}`,
+      `  Avg consumer scroll: ${w.avgScrollMinutes} min/day | Impulses logged: ${w.impulsesLogged}, interrupted: ${w.impulsesInterrupted}`,
+      `  Personal content: ${w.personalContent} | HustlIQ content: ${w.hustliqContent} | College: ${w.collegeMinutes} min`,
+      `  Avg code confidence: ${w.avgCodeConfidence}/5`,
+      `  Weekly targets — ${targetLines || 'none set'}`,
+      `  Avg emotions — ${emotionLines || 'none'}`,
+    );
+  }
+
+  return lines.join('\n');
 }
 
 function isEmpty(context) {
@@ -72,8 +105,11 @@ function isEmpty(context) {
   const defaultCheckIn =
     context.checkIn.energy === 3 && context.checkIn.pain === 2 && context.checkIn.focus === 3;
   const noHistory = (context.pastTasks ?? []).length === 0;
-  return noTasksDone && defaultCheckIn && noHistory;
+  // If Life OS has logged days, there is enough data to generate real insights.
+  const hasLifeOSData = context.lifeOS && context.lifeOS.daysLogged > 0;
+  return noTasksDone && defaultCheckIn && noHistory && !hasLifeOSData;
 }
+
 
 const DEFAULT_AREA_NAMES = ['Faith', 'Health', 'Business', 'College', 'Mind', 'Family', 'Personality'];
 
